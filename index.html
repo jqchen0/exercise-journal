@@ -1,1 +1,595 @@
+<!DOCTYPE html>
 
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Exercise Journal">
+  <title>Exercise Journal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+
+```
+h1 { font-size: 24px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: #64748b; margin-bottom: 20px; }
+
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.export-btn {
+  background: none; border: none; padding: 8px; color: #64748b; cursor: pointer;
+  border-radius: 8px;
+}
+.export-btn:hover { background: #f1f5f9; }
+
+.tabs {
+  display: flex; background: #e2e8f0; border-radius: 8px; padding: 4px; margin-bottom: 20px;
+}
+.tab {
+  flex: 1; padding: 10px; border: none; background: none; font-size: 14px;
+  font-weight: 500; color: #64748b; border-radius: 6px; cursor: pointer;
+}
+.tab.active { background: white; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+.card {
+  background: white; border-radius: 12px; padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stat-value { font-size: 28px; font-weight: 600; color: #1e293b; }
+.stat-label { font-size: 13px; color: #64748b; }
+
+.btn-primary {
+  width: 100%; padding: 14px; background: #1e293b; color: white;
+  border: none; border-radius: 12px; font-size: 16px; font-weight: 500;
+  cursor: pointer; margin-bottom: 20px;
+}
+.btn-primary:hover { background: #334155; }
+
+.entry {
+  background: white; border-radius: 12px; padding: 16px;
+  border: 1px solid #e2e8f0; margin-bottom: 12px;
+}
+.entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.entry-type {
+  font-size: 12px; padding: 2px 8px; border-radius: 12px; font-weight: 500;
+}
+.entry-date { font-size: 13px; color: #64748b; margin-top: 4px; }
+.entry-meta { display: flex; align-items: center; gap: 8px; }
+.entry-intensity { font-size: 11px; padding: 4px 8px; border-radius: 12px; }
+.entry-duration { font-weight: 500; color: #1e293b; }
+.entry-notes { font-size: 14px; color: #475569; margin: 12px 0; white-space: pre-line; }
+.entry-actions { display: flex; gap: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+.entry-actions button {
+  background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px;
+}
+.btn-edit { color: #64748b; }
+.btn-delete { color: #f87171; }
+
+.type-strength { background: #f3e8ff; color: #7c3aed; }
+.type-yoga { background: #ccfbf1; color: #0d9488; }
+.type-running { background: #dbeafe; color: #2563eb; }
+.type-walking { background: #e0f2fe; color: #0284c7; }
+.type-stretching { background: #d1fae5; color: #059669; }
+.type-abs { background: #fce7f3; color: #db2777; }
+.type-hiit { background: #fee2e2; color: #dc2626; }
+.type-other { background: #f1f5f9; color: #475569; }
+
+.intensity-light { background: #dcfce7; color: #15803d; }
+.intensity-moderate { background: #fef9c3; color: #a16207; }
+.intensity-intense { background: #ffedd5; color: #c2410c; }
+.intensity-max { background: #fee2e2; color: #dc2626; }
+
+/* Form Styles */
+.form-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; justify-content: center;
+}
+.form-overlay.active { display: flex; }
+.form-container {
+  background: white; border-radius: 16px 16px 0 0; padding: 20px;
+  width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+}
+.form-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #1e293b; }
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-size: 14px; color: #475569; margin-bottom: 6px; }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 16px; color: #1e293b;
+}
+.form-row textarea { resize: none; height: 80px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.intensity-btns { display: flex; gap: 8px; }
+.intensity-btn {
+  flex: 1; padding: 10px 8px; border: 1px solid #e2e8f0; background: #f8fafc;
+  border-radius: 8px; font-size: 13px; cursor: pointer; text-transform: capitalize;
+}
+.intensity-btn.active { border-width: 2px; }
+.intensity-btn.active.light { background: #dcfce7; border-color: #15803d; color: #15803d; }
+.intensity-btn.active.moderate { background: #fef9c3; border-color: #a16207; color: #a16207; }
+.intensity-btn.active.intense { background: #ffedd5; border-color: #c2410c; color: #c2410c; }
+.intensity-btn.active.max { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
+
+.form-actions { display: flex; gap: 12px; margin-top: 20px; }
+.form-actions button { flex: 1; padding: 14px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.btn-cancel { background: none; border: 1px solid #e2e8f0; color: #475569; }
+.btn-save { background: #1e293b; border: none; color: white; font-weight: 500; }
+
+/* Summary Styles */
+.period-btns { display: flex; gap: 8px; margin-bottom: 20px; }
+.period-btn {
+  flex: 1; padding: 10px; border: 1px solid #e2e8f0; background: white;
+  border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; color: #475569;
+}
+.period-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
+
+.breakdown-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.breakdown-label { font-size: 14px; color: #475569; }
+.breakdown-value { font-size: 14px; font-weight: 500; color: #1e293b; }
+.breakdown-count { font-size: 12px; color: #94a3b8; margin-left: 8px; }
+.section-title { font-size: 13px; color: #64748b; margin-bottom: 12px; }
+.streak { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; font-size: 14px; color: #475569; }
+
+/* Export Menu */
+.export-menu {
+  display: none; position: absolute; right: 16px; top: 60px; background: white;
+  border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;
+  z-index: 50; min-width: 160px;
+}
+.export-menu.active { display: block; }
+.export-menu button {
+  display: block; width: 100%; padding: 12px 16px; text-align: left;
+  background: none; border: none; font-size: 14px; color: #475569; cursor: pointer;
+}
+.export-menu button:hover { background: #f8fafc; }
+
+.empty { text-align: center; padding: 40px; color: #94a3b8; }
+.empty p { margin-bottom: 4px; }
+.empty small { font-size: 13px; }
+```
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Exercise Journal</h1>
+        <p class="subtitle">Track your daily workouts</p>
+      </div>
+      <button class="export-btn" onclick="toggleExportMenu()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+      <div class="export-menu" id="exportMenu">
+        <button onclick="exportText()">Export as Text</button>
+        <button onclick="exportCSV()">Export as CSV</button>
+        <button onclick="exportJSON()">Export as JSON</button>
+      </div>
+    </div>
+
+```
+<div class="tabs">
+  <button class="tab active" id="tabLog" onclick="showView('log')">Log</button>
+  <button class="tab" id="tabSummary" onclick="showView('summary')">Summary</button>
+</div>
+
+<div id="logView">
+  <div class="card">
+    <div class="stats-grid">
+      <div>
+        <div class="stat-value" id="weekMinutes">0</div>
+        <div class="stat-label">min this week</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="stat-value" id="totalEntries">0</div>
+        <div class="stat-label">total entries</div>
+      </div>
+    </div>
+  </div>
+  
+  <button class="btn-primary" onclick="openForm()">+ Log Exercise</button>
+  
+  <div id="entriesList"></div>
+</div>
+
+<div id="summaryView" style="display: none;">
+  <div class="period-btns">
+    <button class="period-btn active" onclick="setPeriod('week')">Week</button>
+    <button class="period-btn" onclick="setPeriod('month')">Month</button>
+    <button class="period-btn" onclick="setPeriod('year')">Year</button>
+  </div>
+  <div id="summaryContent"></div>
+</div>
+```
+
+  </div>
+
+  <div class="form-overlay" id="formOverlay" onclick="closeFormOverlay(event)">
+    <div class="form-container" onclick="event.stopPropagation()">
+      <div class="form-title" id="formTitle">New Entry</div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Date</label>
+          <input type="date" id="formDate">
+        </div>
+        <div class="form-row">
+          <label>Duration (min)</label>
+          <input type="number" id="formDuration" placeholder="30">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Exercise Type</label>
+        <select id="formType">
+          <option>Strength Training</option>
+          <option>Yoga</option>
+          <option>Running</option>
+          <option>Walking</option>
+          <option>Stretching</option>
+          <option>Abs</option>
+          <option>HIIT</option>
+          <option>Cycling</option>
+          <option>Swimming</option>
+          <option>Pilates</option>
+          <option>Dancing</option>
+          <option>Hiking</option>
+          <option>Sports</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Intensity</label>
+        <div class="intensity-btns">
+          <button class="intensity-btn light" onclick="setIntensity('light')">light</button>
+          <button class="intensity-btn moderate active moderate" onclick="setIntensity('moderate')">moderate</button>
+          <button class="intensity-btn intense" onclick="setIntensity('intense')">intense</button>
+          <button class="intensity-btn max" onclick="setIntensity('max')">max</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="formNotes" placeholder="How did it go?"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeForm()">Cancel</button>
+        <button class="btn-save" onclick="saveEntry()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let entries = [];
+    let editingId = null;
+    let currentIntensity = 'moderate';
+    let currentPeriod = 'week';
+    
+    // Pre-loaded entries from your Notes
+    const IMPORTED_ENTRIES = [
+      { id: '20260113a', date: '2026-01-13', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup (JJ 40)" },
+      { id: '20260113b', date: '2026-01-13', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 4 (1/3, 8lbs)" },
+      { id: '20260113c', date: '2026-01-13', type: 'Walking', duration: 60, intensity: 'moderate', notes: "Walking 10K (3.8mi)" },
+      { id: '20260112a', date: '2026-01-12', type: 'Yoga', duration: 20, intensity: 'light', notes: "Adrienne's yoga Breath (day 3)" },
+      { id: '20260112b', date: '2026-01-12', type: 'Abs', duration: 10, intensity: 'moderate', notes: "Pamela's 10min ab lines workout" },
+      { id: '20260112c', date: '2026-01-12', type: 'Stretching', duration: 15, intensity: 'light', notes: "Mady's 15min full body stretch" },
+      { id: '20260111a', date: '2026-01-11', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup (JJ 40)" },
+      { id: '20260111b', date: '2026-01-11', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 3 (2/2)" },
+      { id: '20260110a', date: '2026-01-10', type: 'Yoga', duration: 20, intensity: 'light', notes: "Adrienne's yoga Breath (day 2)" },
+      { id: '20260110b', date: '2026-01-10', type: 'Abs', duration: 6, intensity: 'intense', notes: "Pamela's 6min brutal ab workout" },
+      { id: '20260110c', date: '2026-01-10', type: 'Stretching', duration: 25, intensity: 'light', notes: "Mady's 25min deep stretch" },
+      { id: '20260109a', date: '2026-01-09', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup (JJ 30)" },
+      { id: '20260109b', date: '2026-01-09', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 3 (1/2)" },
+      { id: '20260109c', date: '2026-01-09', type: 'Running', duration: 18, intensity: 'moderate', notes: "1.72mi run (10.47/mi)" },
+      { id: '20260109d', date: '2026-01-09', type: 'Stretching', duration: 10, intensity: 'light', notes: "Mady's 10min post run stretch" },
+      { id: '20260108a', date: '2026-01-08', type: 'Yoga', duration: 20, intensity: 'light', notes: "Adrienne's yoga Breath (day 1)" },
+      { id: '20260108b', date: '2026-01-08', type: 'Abs', duration: 10, intensity: 'moderate', notes: "Pamela's 10min ab to heaven workout" },
+      { id: '20260108c', date: '2026-01-08', type: 'Stretching', duration: 10, intensity: 'light', notes: "Mady's 10min neck & shoulder stretch" },
+      { id: '20260107a', date: '2026-01-07', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup" },
+      { id: '20260107b', date: '2026-01-07', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 2 (2/2)" },
+      { id: '20260107c', date: '2026-01-07', type: 'Yoga', duration: 10, intensity: 'light', notes: "Brett Larkin's 10min Beginner morning Yoga" },
+      { id: '20260107d', date: '2026-01-07', type: 'Stretching', duration: 10, intensity: 'light', notes: "Mady's 10min back stretch" },
+      { id: '20260106a', date: '2026-01-06', type: 'Yoga', duration: 20, intensity: 'light', notes: "Brett Larkin's Pure Beginner Yoga (1)" },
+      { id: '20260106b', date: '2026-01-06', type: 'HIIT', duration: 4, intensity: 'intense', notes: "嘉研 4min Tabata upper body workout" },
+      { id: '20260106c', date: '2026-01-06', type: 'Stretching', duration: 15, intensity: 'light', notes: "Mady's 15min full body stretch" },
+      { id: '20260105a', date: '2026-01-05', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup" },
+      { id: '20260105b', date: '2026-01-05', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 2 (1/2)" },
+      { id: '20260105c', date: '2026-01-05', type: 'Abs', duration: 10, intensity: 'moderate', notes: "Pamela's 10min ab workout" },
+      { id: '20260104a', date: '2026-01-04', type: 'Abs', duration: 10, intensity: 'moderate', notes: "Caroline's 10min ab complex" },
+      { id: '20260103a', date: '2026-01-03', type: 'Yoga', duration: 20, intensity: 'light', notes: "Adrienne's yoga Return (#1 Sense)" },
+      { id: '20260103b', date: '2026-01-03', type: 'Stretching', duration: 15, intensity: 'light', notes: "Mady's 15min leg stretch" },
+      { id: '20260102a', date: '2026-01-02', type: 'Strength Training', duration: 5, intensity: 'light', notes: "Caroline's 5min full body warmup" },
+      { id: '20260102b', date: '2026-01-02', type: 'Strength Training', duration: 30, intensity: 'moderate', notes: "Caroline's EPIC Series Day 1 (bodyweight)" },
+      { id: '20260102c', date: '2026-01-02', type: 'Stretching', duration: 15, intensity: 'light', notes: "Mady's 15min lower back & hip stretch" },
+    ];
+    
+    function init() {
+      const saved = localStorage.getItem('exercise-journal');
+      if (saved) {
+        entries = JSON.parse(saved);
+      } else {
+        entries = [...IMPORTED_ENTRIES];
+        saveToStorage();
+      }
+      render();
+    }
+    
+    function saveToStorage() {
+      localStorage.setItem('exercise-journal', JSON.stringify(entries));
+    }
+    
+    function render() {
+      renderEntries();
+      updateStats();
+    }
+    
+    function renderEntries() {
+      const list = document.getElementById('entriesList');
+      if (entries.length === 0) {
+        list.innerHTML = '<div class="empty"><p>No entries yet.</p><small>Start logging your workouts!</small></div>';
+        return;
+      }
+      
+      const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+      list.innerHTML = sorted.map(e => `
+        <div class="entry">
+          <div class="entry-header">
+            <div>
+              <span class="entry-type type-${e.type.toLowerCase().replace(' ', '-')}">${e.type}</span>
+              <div class="entry-date">${formatDate(e.date)}</div>
+            </div>
+            <div class="entry-meta">
+              <span class="entry-intensity intensity-${e.intensity}">${e.intensity}</span>
+              <span class="entry-duration">${e.duration} min</span>
+            </div>
+          </div>
+          ${e.notes ? `<div class="entry-notes">${e.notes}</div>` : ''}
+          <div class="entry-actions">
+            <button class="btn-edit" onclick="editEntry('${e.id}')">Edit</button>
+            <button class="btn-delete" onclick="deleteEntry('${e.id}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function updateStats() {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const weekMin = entries.filter(e => new Date(e.date) >= weekAgo).reduce((s, e) => s + e.duration, 0);
+      document.getElementById('weekMinutes').textContent = weekMin;
+      document.getElementById('totalEntries').textContent = entries.length;
+    }
+    
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    
+    function showView(view) {
+      document.getElementById('tabLog').classList.toggle('active', view === 'log');
+      document.getElementById('tabSummary').classList.toggle('active', view === 'summary');
+      document.getElementById('logView').style.display = view === 'log' ? 'block' : 'none';
+      document.getElementById('summaryView').style.display = view === 'summary' ? 'block' : 'none';
+      if (view === 'summary') renderSummary();
+    }
+    
+    function setPeriod(period) {
+      currentPeriod = period;
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase() === period);
+      });
+      renderSummary();
+    }
+    
+    function renderSummary() {
+      const now = new Date();
+      let startDate;
+      if (currentPeriod === 'week') {
+        startDate = new Date(now); startDate.setDate(now.getDate() - 7);
+      } else if (currentPeriod === 'month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else {
+        startDate = new Date(now.getFullYear(), 0, 1);
+      }
+      
+      const filtered = entries.filter(e => new Date(e.date) >= startDate);
+      const totalMin = filtered.reduce((s, e) => s + e.duration, 0);
+      const uniqueDays = new Set(filtered.map(e => e.date)).size;
+      const avgPerDay = uniqueDays > 0 ? Math.round(totalMin / uniqueDays) : 0;
+      
+      const byType = {};
+      filtered.forEach(e => {
+        if (!byType[e.type]) byType[e.type] = { count: 0, minutes: 0 };
+        byType[e.type].count++;
+        byType[e.type].minutes += e.duration;
+      });
+      const typesSorted = Object.entries(byType).sort((a, b) => b[1].minutes - a[1].minutes);
+      
+      const byInstructor = {};
+      filtered.forEach(e => {
+        const match = e.notes.match(/^([A-Za-z\u4e00-\u9fff]+)'s/);
+        if (match) {
+          const name = match[1];
+          if (!byInstructor[name]) byInstructor[name] = { count: 0, minutes: 0 };
+          byInstructor[name].count++;
+          byInstructor[name].minutes += e.duration;
+        }
+      });
+      const instructorsSorted = Object.entries(byInstructor).sort((a, b) => b[1].minutes - a[1].minutes);
+      
+      const periodLabel = currentPeriod === 'week' ? 'This Week' : currentPeriod === 'month' ? 'This Month' : '2026 So Far';
+      
+      document.getElementById('summaryContent').innerHTML = `
+        <div class="card">
+          <div class="section-title">${periodLabel}</div>
+          <div class="stats-grid">
+            <div><div class="stat-value">${totalMin}</div><div class="stat-label">total minutes</div></div>
+            <div><div class="stat-value">${filtered.length}</div><div class="stat-label">workouts</div></div>
+            <div><div class="stat-value">${uniqueDays}</div><div class="stat-label">active days</div></div>
+            <div><div class="stat-value">${avgPerDay}</div><div class="stat-label">min/active day</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">By Type</div>
+          ${typesSorted.map(([type, data]) => `
+            <div class="breakdown-item">
+              <span class="entry-type type-${type.toLowerCase().replace(' ', '-')}">${type}</span>
+              <div><span class="breakdown-value">${data.minutes} min</span><span class="breakdown-count">(${data.count}×)</span></div>
+            </div>
+          `).join('')}
+        </div>
+        ${instructorsSorted.length > 0 ? `
+        <div class="card">
+          <div class="section-title">By Instructor</div>
+          ${instructorsSorted.map(([name, data]) => `
+            <div class="breakdown-item">
+              <span class="breakdown-label">${name}</span>
+              <div><span class="breakdown-value">${data.minutes} min</span><span class="breakdown-count">(${data.count}×)</span></div>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+      `;
+    }
+    
+    function openForm(id = null) {
+      editingId = id;
+      document.getElementById('formTitle').textContent = id ? 'Edit Entry' : 'New Entry';
+      
+      if (id) {
+        const entry = entries.find(e => e.id === id);
+        document.getElementById('formDate').value = entry.date;
+        document.getElementById('formDuration').value = entry.duration;
+        document.getElementById('formType').value = entry.type;
+        document.getElementById('formNotes').value = entry.notes;
+        setIntensity(entry.intensity);
+      } else {
+        document.getElementById('formDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('formDuration').value = '';
+        document.getElementById('formType').value = 'Strength Training';
+        document.getElementById('formNotes').value = '';
+        setIntensity('moderate');
+      }
+      
+      document.getElementById('formOverlay').classList.add('active');
+    }
+    
+    function closeForm() {
+      document.getElementById('formOverlay').classList.remove('active');
+      editingId = null;
+    }
+    
+    function closeFormOverlay(e) {
+      if (e.target === document.getElementById('formOverlay')) closeForm();
+    }
+    
+    function setIntensity(level) {
+      currentIntensity = level;
+      document.querySelectorAll('.intensity-btn').forEach(btn => {
+        const isActive = btn.classList.contains(level);
+        btn.classList.toggle('active', isActive);
+      });
+    }
+    
+    function saveEntry() {
+      const entry = {
+        id: editingId || Date.now().toString(),
+        date: document.getElementById('formDate').value,
+        type: document.getElementById('formType').value,
+        duration: parseInt(document.getElementById('formDuration').value) || 0,
+        intensity: currentIntensity,
+        notes: document.getElementById('formNotes').value
+      };
+      
+      if (editingId) {
+        const idx = entries.findIndex(e => e.id === editingId);
+        entries[idx] = entry;
+      } else {
+        entries.push(entry);
+      }
+      
+      saveToStorage();
+      render();
+      closeForm();
+    }
+    
+    function editEntry(id) { openForm(id); }
+    
+    function deleteEntry(id) {
+      if (confirm('Delete this entry?')) {
+        entries = entries.filter(e => e.id !== id);
+        saveToStorage();
+        render();
+      }
+    }
+    
+    function toggleExportMenu() {
+      document.getElementById('exportMenu').classList.toggle('active');
+    }
+    
+    function exportText() {
+      const grouped = {};
+      entries.forEach(e => {
+        if (!grouped[e.date]) grouped[e.date] = [];
+        grouped[e.date].push(e);
+      });
+      
+      const lines = Object.entries(grouped)
+        .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+        .map(([date, dayEntries]) => {
+          const d = new Date(date + 'T00:00:00');
+          const formatted = `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
+          return formatted + '\n' + dayEntries.map(e => e.notes).join('\n');
+        });
+      
+      download(lines.join('\n\n'), 'exercise-journal.txt', 'text/plain');
+      toggleExportMenu();
+    }
+    
+    function exportCSV() {
+      const rows = [['Date','Type','Duration','Intensity','Notes']];
+      entries.forEach(e => rows.push([e.date, e.type, e.duration, e.intensity, `"${e.notes.replace(/"/g,'""')}"`]));
+      download(rows.map(r => r.join(',')).join('\n'), 'exercise-journal.csv', 'text/csv');
+      toggleExportMenu();
+    }
+    
+    function exportJSON() {
+      download(JSON.stringify(entries, null, 2), 'exercise-journal.json', 'application/json');
+      toggleExportMenu();
+    }
+    
+    function download(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.export-btn') && !e.target.closest('.export-menu')) {
+        document.getElementById('exportMenu').classList.remove('active');
+      }
+    });
+    
+    init();
+  </script>
+
+</body>
+</html>
